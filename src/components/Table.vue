@@ -23,7 +23,7 @@
       </div>
     </div>
     <div class="grid grid-flow-col grid-cols-10 grid-rows-1 gap-4 pt-5" v-if="done">
-      <input v-for="index in totalPages" :key="index" type="button" :value="index" class="cursor-pointer rounded" :class="getPageClass(index)" @click="gotoPage(index)"/>
+      <input v-for="index in totalPages" :key="index" type="button" :value="getPageRange(index)" class="cursor-pointer rounded" :class="getPageClass(index)" @click="gotoPage(index)"/>
     </div>
   </div>
 </template>
@@ -46,6 +46,12 @@ export default {
     }
   },
   methods: {
+    getPageRange(pageNumber) {
+      let end = pageNumber * this.pageSize
+      let start = (end - this.pageSize) + 1
+      return `${start} - ${end}`
+    },
+
     getHeadingClass() {
       if (!this.done) {
         return "col-end-13 col-span-3"
@@ -101,7 +107,7 @@ export default {
         let secondsTaken = Math.floor((this.endTs - this.startTs) / 1000)
         let minutes = Math.floor(secondsTaken / 60)
         if (minutes) {
-          resultStr = `${resultStr} ${String().padStart(2, '0')} minutes`
+          resultStr = `${resultStr} ${String(minutes).padStart(2, '0')} minutes`
         }
         if (secondsTaken % 60) {
           resultStr = `${resultStr} ${String(secondsTaken % 60).padStart(2, '0')} seconds`
