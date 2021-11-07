@@ -166,14 +166,18 @@ export default {
       }
     },
 
+    getRandomMax(digits) {
+      let digitCount = Math.floor(Math.random() * digits) + 1
+      return Math.pow(10, digitCount)
+    },
+
     generateQuestion(constraint, index) {
       const sign = [1, -1]
-      const max = Math.pow(10, constraint.digits)
       const numbers = []
       let correctAnswer = 0
       
       for (let i = 0; i < constraint.rows; i++) {
-        let unsigned = Math.floor(Math.random() * max)
+        let unsigned = Math.floor(Math.random() * this.getRandomMax(constraint.digits))
         let signed = unsigned * sign[Math.floor(Math.random() * sign.length)]
         if (correctAnswer >= Math.abs(signed)) {
           numbers.push(signed)
@@ -217,10 +221,6 @@ export default {
       return this.questions.slice(start, end + 1)
     },
 
-    showResults() {
-      console.log(this.questions)
-    },
-
     onEnter(question) {
       let qindex = question.index
       let userAnswer = Number.parseInt(question.answer)
@@ -232,9 +232,7 @@ export default {
 
       if (qindex === this.pageSize * this.totalPages) {
         this.page = 1
-        console.log("Done")
         this.stop()
-        this.showResults()
         return
       }
       if ((qindex % this.pageSize) === 0) {
