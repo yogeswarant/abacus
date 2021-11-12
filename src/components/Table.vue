@@ -168,7 +168,7 @@ export default {
 
     getRandomMax(digits) {
       let digitCount = Math.floor(Math.random() * digits) + 1
-      return Math.pow(10, digitCount)
+      return Math.pow(10, digitCount) - 1
     },
 
     generateQuestion(constraint, index) {
@@ -177,7 +177,7 @@ export default {
       let correctAnswer = 0
       
       for (let i = 0; i < constraint.rows; i++) {
-        let unsigned = Math.floor(Math.random() * this.getRandomMax(constraint.digits))
+        let unsigned = Math.ceil(Math.random() * this.getRandomMax(constraint.digits))
         let signed = unsigned * sign[Math.floor(Math.random() * sign.length)]
         if (correctAnswer >= Math.abs(signed)) {
           numbers.push(signed)
