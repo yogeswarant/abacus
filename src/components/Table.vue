@@ -1,34 +1,38 @@
 <template>
-  <div v-if="!started">
-    <input type="button" class="cursor-pointer rounded p-5 bg-blue-500 text-white hover:bg-blue-700" value="Start" @click="start()"/>
-  </div>
-  <div v-if="started">
-    <div class="grid grid-cols-12 gap-4 col-span-2">
-        <h1 class="font-bold" :class="getHeadingClass()">{{getHeading()}}</h1>
+  <div class="grid grid-flow-row">
+    <div class="bg-gray-200">
+        <h1 class="text-center font-bold">{{getHeading()}}</h1>
+    </div>
+    <div class="m-10 grid grid-flow-col grid-cols-10 grid-rows-1 gap-4 pt-5" v-if="done">
+      <input v-for="index in totalPages" :key="index" type="button" :value="getPageRange(index)" class="cursor-pointer rounded" :class="getPageClass(index)" @click="gotoPage(index)"/>
     </div>
     <div class="grid grid-flow-row">
       <div v-for="index in totalPages" :key="index">
       <div class="grid grid-flow-col w-screen" v-if="page === index">
           <div v-for="(question, cindex) in getQuestions(index)" :key="question" class="w-full">
-            <p class="border-black border-2 bg-gray-900 text-gray-50">{{question.index}}</p> 
+            <p class="border-black border-2 bg-gray-900 text-gray-50 text-center">{{question.index}}</p>
             <div v-for="(row, rindex) in question.numbers" :key="row" >
-              <p class="border-black border-b-2 border-r-2" :class="getCellClass(rindex, cindex)">{{row}}</p>
+              <p class="border-black border-b-2 border-r-2 text-center" :class="getCellClass(rindex, cindex)">{{row}}</p>
             </div>
             <input type="text" class="border-4 w-full focus:border-red-700 border-t-2 border-l-2 focus:outline-none text-center" :class="getAnsweredClass()" v-model="question.answer" v-on:keyup.enter="onEnter(question)" :id="`q-${question.index}`" :autofocus="getAutoFocus(question.index)" :hidden="done"/>
             <div v-if="done">
-              <p class="border-black border-b-2 border-r-2" :class="getResultClass(question)">{{getResultLine(question)}}</p>
+              <p class="border-black border-b-2 border-r-2 text-center" :class="getResultClass(question)">{{getResultLine(question)}}</p>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="grid grid-flow-col grid-cols-10 grid-rows-1 gap-4 pt-5" v-if="done">
-      <input v-for="index in totalPages" :key="index" type="button" :value="getPageRange(index)" class="cursor-pointer rounded" :class="getPageClass(index)" @click="gotoPage(index)"/>
+    <div v-if="done" class="m-10 grid grid-cols-6">
+      <button class="col-start-2 px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700" @click="goHome()">Home</button>
+      <button class="col-start-5 px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700" @click="playAgain()">Play Again</button>
     </div>
   </div>
 </template>
 
 <script>
+
+import { getUserSettings } from '../user-settings'
+
 export default {
   name: 'Table',
   data() {
@@ -42,24 +46,25 @@ export default {
       answer: 0,
       page: 1,
       questions: [],
-      done: false
+      done: false,
+      pattern: []
     }
   },
   methods: {
+    goHome() {
+      this.$router.push('/')
+    },
+
+    playAgain() {
+      this.reset()
+    },
+
     getPageRange(pageNumber) {
       let end = pageNumber * this.pageSize
       let start = (end - this.pageSize) + 1
       return `${start} - ${end}`
     },
 
-    getHeadingClass() {
-      if (!this.done) {
-        return "col-end-13 col-span-3"
-      }
-      else {
-        return "col-end-13 col-span-5"
-      }
-    },
     start() {
       this.started = true
       this.startTs = Date.now()
@@ -192,23 +197,11 @@ export default {
     },
 
     generateQuestions() {
-      const pattern = {
-        1: {digits:1, rows: 4},
-        2: {digits:2, rows: 3},
-        3: {digits:2, rows: 4},
-        4: {digits:2, rows: 4},
-        5: {digits:2, rows: 5},
-        6: {digits:2, rows: 5},
-        7: {digits:2, rows: 6},
-        8: {digits:2, rows: 6},
-        9: {digits:2, rows: 7},
-        10: {digits:2, rows: 8}
-      }
       var questions = []
       for (let page = 1; page <= this.totalPages; page++) {
         for (let qindex = 0; qindex < this.pageSize; qindex++) {
           let index = ((page - 1) * this.pageSize) + (qindex + 1)
-          let question = this.generateQuestion(pattern[page], index)
+          let question = this.generateQuestion(this.pattern[page], index)
           questions.push(question)
         }
       }
@@ -258,10 +251,28 @@ export default {
 
     getAnsweredClass() {
       return "border-gray-500"
+    },
+
+    reset() {
+      const userSettings = getUserSettings()
+      this.questions = this.generateQuestions()
+      this.done = false
+      this.remainingSeconds = userSettings.totalTime * 60
+      this.start()
+      setTimeout(()=> {document.getElementById('q-1').focus()}, 1000)
     }
   },
   mounted() {
     this.questions = this.generateQuestions()
+    setTimeout(()=> {document.getElementById('q-1').focus()}, 1000)
+  },
+  created() {
+    const userSettings = getUserSettings()
+    this.remainingSeconds = userSettings.totalTime * 60
+    this.totalPages = userSettings.totalPages
+    this.pattern = userSettings.config
+    this.pageSize = userSettings.quesPerPage
+    this.start()
   }
 }
 </script>
