@@ -32,6 +32,7 @@
 <script>
 
 import { getUserSettings } from '../user-settings'
+import { saveQA, saveAttempt } from '../db'
 
 export default {
   name: 'Table',
@@ -67,7 +68,7 @@ export default {
 
     start() {
       this.started = true
-      this.startTs = Date.now()
+      saveAttempt(this.startTs)
       var interval = setInterval(() => {
         this.remainingSeconds--
         if (this.done) {
@@ -171,9 +172,20 @@ export default {
       }
     },
 
+    getRandomIntInclusive(min, max) {
+      min = Math.ceil(min);
+      max = Math.floor(max);
+      return Math.floor(Math.random() * (max - min + 1) + min); //The maximum is inclusive and the minimum is inclusive
+    },
+
     getRandomMax(digits) {
       let digitCount = Math.floor(Math.random() * digits) + 1
       return Math.pow(10, digitCount) - 1
+    },
+
+    getMinMax(digits) {
+      const minMaxMap = {1: [0, 9], 2: [10, 99], 3: [100, 999], 4: [1000, 9999]}
+      return minMaxMap[digits]
     },
 
     generateQuestion(constraint, index) {
@@ -182,7 +194,8 @@ export default {
       let correctAnswer = 0
       
       for (let i = 0; i < constraint.rows; i++) {
-        let unsigned = Math.ceil(Math.random() * this.getRandomMax(constraint.digits))
+        let [min, max] = this.getMinMax(constraint.digits)
+        let unsigned = this.getRandomIntInclusive(min, max)
         let signed = unsigned * sign[Math.floor(Math.random() * sign.length)]
         if (correctAnswer >= Math.abs(signed)) {
           numbers.push(signed)
@@ -202,6 +215,7 @@ export default {
         for (let qindex = 0; qindex < this.pageSize; qindex++) {
           let index = ((page - 1) * this.pageSize) + (qindex + 1)
           let question = this.generateQuestion(this.pattern[page], index)
+          question.ts = this.startTs
           questions.push(question)
         }
       }
@@ -222,6 +236,8 @@ export default {
       if (question.userAnswer === question.correctAnswer) {
         question.status = 'correct'
       }
+
+      saveQA(JSON.parse(JSON.stringify(question)))
 
       if (qindex === this.pageSize * this.totalPages) {
         this.page = 1
@@ -254,8 +270,9 @@ export default {
     },
 
     reset() {
+      this.startTs = Date.now()
       const userSettings = getUserSettings()
-      this.questions = this.generateQuestions()
+      this.questions = this.generateQuestions(this.startTs)
       this.done = false
       this.remainingSeconds = userSettings.totalTime * 60
       this.start()
@@ -263,7 +280,7 @@ export default {
     }
   },
   mounted() {
-    this.questions = this.generateQuestions()
+    this.questions = this.generateQuestions(this.startTs)
     setTimeout(()=> {document.getElementById('q-1').focus()}, 1000)
   },
   created() {
@@ -272,6 +289,7 @@ export default {
     this.totalPages = userSettings.totalPages
     this.pattern = userSettings.config
     this.pageSize = userSettings.quesPerPage
+    this.startTs = Date.now()
     this.start()
   }
 }
